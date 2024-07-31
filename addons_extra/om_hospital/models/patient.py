@@ -13,12 +13,20 @@ class HospitalPatient(models.Model):
     notes = fields.Text(string='Notes')
     gender = fields.Selection([('male', 'Male'), ('female', 'Female'), ('others', 'Others')], string='Gender', tracking=True)
     capitalize_name = fields.Char(string='Capitalize Name', compute='_compute_capitalize_name', store=True)
+    ref = fields.Char(string='Ref.', default=lambda self: _('New'))
+    doctor_id = fields.Many2one('hospital.doctor', string='Doctor')
     
     @api.constrains('is_child', 'age')
     def _check_child_age(self):
         for rec in self:
             if rec.is_child and rec.age == 0:
                 raise ValidationError(_('Age has to be recorded for child patients.'))
+    
+    @api.model_create_multi       
+    def create(self, vals_list):
+        for vals in vals_list:
+            vals['ref'] = self.env['ir.sequence'].next_by_code('hospital.patient')
+        return super(HospitalPatient, self).create(vals_list)
     
     @api.depends('name')
     def _compute_capitalize_name(self):
